@@ -12,7 +12,6 @@
 
         cd enhanced-scripts && node examples start
         或
-
         cd enhanced-scripts && node examples build
 
     ```
@@ -127,7 +126,7 @@ final_webpack_config
 ```javascript
 //如果使用了vue，需要显式声明vue-loader路径
 //将VueLoaderPlugin 替换为  EnhancedVueLoaderPlugin
-const EnhancedVueLoaderPlugin = require("<project_root>/node_modules/scriptx/EnhancedVueLoaderPlugin");
+const EnhancedVueLoaderPlugin = require("<project_root>/node_modules/enhanced-scripts/EnhancedVueLoaderPlugin");
 // EnhancedVueLoaderPlugin接受一个参数 vueLoaderPath,即vue-loader所在的目录
 //  new EnhancedVueLoaderPlugin(vueLoaderPath)
 
