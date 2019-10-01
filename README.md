@@ -6,13 +6,10 @@
 
 ### Examples
 
-
         git clone https://github.com/Fi2zz/enhanced-scripts.git
-
         cd enhanced-scripts && node examples start
         或
         cd enhanced-scripts && node examples build
-
 
 ### 项目结构
 
