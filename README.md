@@ -6,7 +6,6 @@
 
 ### Examples
 
-    ```bash
 
         git clone https://github.com/Fi2zz/enhanced-scripts.git
 
@@ -14,7 +13,6 @@
         或
         cd enhanced-scripts && node examples build
 
-    ```
 
 ### 项目结构
 
