@@ -7,10 +7,11 @@ const patterns = {
   yarn: "yarn.*",
   npm: "npm*"
 };
+
 const glob = require("glob");
 module.exports = function watcher({ dirs, onChange }) {
   const wp = new Watchpack({
-    aggregateTimeout: 500,
+    aggregateTimeout: 1000,
     ignored: [
       /\.lock$/,
       /\.log$/,

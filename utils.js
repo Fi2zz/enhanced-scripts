@@ -51,3 +51,13 @@ exports.shouldUseYarn = function shouldUseYarn() {
     return false;
   }
 };
+
+exports.tryCatch = function tryCatch(fn) {
+  var args = [].slice.call(arguments, 1);
+
+  try {
+    return [null, fn.apply(null, args)];
+  } catch (e) {
+    return [e];
+  }
+};

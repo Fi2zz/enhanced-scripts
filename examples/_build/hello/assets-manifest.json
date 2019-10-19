@@ -1,7 +1,0 @@
-{
-  "files": {
-    "main.js": "/_build/hello/js/main.js",
-    "main.js.map": "/_build/hello/js/main.js.map",
-    "hello/img/hello.jpg": "/_build/hello/img/hello.jpg"
-  }
-}

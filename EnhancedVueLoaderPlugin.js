@@ -13,13 +13,11 @@ function getVueRule(rules) {
 
 class EnhancedVueLoaderPlugin {
   constructor(vueLoaderPath) {
-    let dirname = path.dirname(vueLoaderPath);
-    if (dirname.endsWith("/lib")) {
-      dirname = dirname.replace("/lib", "").trim();
-    }
-    if (dirname.endsWith("/vue-loader")) {
-      dirname = dirname.replace("/vue-loader", "").trim();
-    }
+    const dirname = path
+      .dirname(vueLoaderPath)
+      .split(path.sep)
+      .filter(item => item !== "lib" && item !== "vue-loader")
+      .join(path.sep);
     this.vueLoaderParentDir = dirname;
   }
   apply(compiler) {

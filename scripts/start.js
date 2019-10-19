@@ -10,39 +10,44 @@ const path = require("path");
 const paths = require("../config/paths");
 const { makeBuildDirectory } = require("../makeBuildDirectory");
 require("../config/env");
+
 checkDependencies("start").then(async apps => {
   makeBuildDirectory();
   let applications = await Promise.all(apps);
   applications = applications.map(app => ({
     config: createConfig("development", app),
-    dir: path.dirname(app.entry)
+    dir: path.dirname(app.entry),
+    name: path.basename(path.dirname(app.entry))
   }));
-  const findApplication = name =>
-    applications.find(item => path.basename(item.dir) === name);
+  const findConfig = name => applications.find(item => item.dir === name);
   const source = paths.config.src;
+  const watchedDirectories = applications.map(item => item.dir);
   watcher({
-    dirs: applications.map(item => item.dir),
-    onChange: async file => {
-      const name = file
-        .replace(`${source}/`, "")
-        .split("/")
-        .shift();
-      const application = findApplication(name);
-      if (application) {
-        try {
-          await compile(application.config, true);
-          copyAssets({
-            mode: "development",
-            firstCompilation: false,
-            name: name
-          });
-          utils.ok("Watching files");
-        } catch (error) {
-          Promise.reject(error);
-        }
+    dirs: watchedDirectories,
+    onChange: async changedFile => {
+      const filename = changedFile.split("apps").pop();
+      const appDir = path.join(source, path.dirname(filename));
+      const current = findConfig(appDir);
+      if (current) {
+        await makeCompile(current.config, current.name);
       }
     }
   });
+
+  async function makeCompile(config, name) {
+    try {
+      name = name || null;
+      await compile(config, true);
+      utils.ok("Watching files");
+      copyAssets({
+        mode: "development",
+        firstCompilation: name === null,
+        name: name
+      });
+    } catch (error) {
+      Promise.reject(error);
+    }
+  }
   function createInitCompilation() {
     let compilations = 0;
     let hasFailedJob = false;

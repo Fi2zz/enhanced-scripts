@@ -79,10 +79,18 @@ function getBuildConfig() {
   const ignore = getIgnoredPaths(appPackageJson);
   if (ignore.length) {
     config.ignore = ignore.map(ignore => {
-      if (ignore.startsWith(srcName) || ignore.startsWith(`/${srcName}`)) {
-        return resolveApp(ignore);
+      let p;
+      if (
+        ignore.startsWith(srcName) ||
+        ignore.startsWith(`${srcName}${path.sep}`)
+      ) {
+        p = resolveApp(ignore);
+      } else {
+        p = path.resolve(appDirectory, srcName, ignore);
       }
-      return path.resolve(appDirectory, srcName, ignore);
+      //format ignored paths
+      //windows use  \\, unix like use /
+      return p.split(path.sep).join("_");
     });
   }
   if (config.excludes.length > 0 && !config.only) {

@@ -58,7 +58,10 @@ module.exports = function getApplications(script) {
         .join("\n")}`
     );
     packages = packages.filter(packagePath => {
-      const dirname = path.dirname(packagePath);
+      let dirname = path
+        .dirname(packagePath)
+        .split("/")
+        .join("_");
       return !ignore.includes(dirname);
     });
   }
