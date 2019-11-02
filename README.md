@@ -14,13 +14,13 @@
 ### 项目结构
 
     project_root
-    |-webpack.config.js //如果有
-    |-<build-config>.yaml //如果有
+    |-webpack.config.js //如果需要
+    |-<config>.yaml //如果有
     |-apps
-    | |-<app_name>
+    | |-<app-name>
     | |--index.js
     | |--package.json
-    | |--webpack.config.js //如果有
+    | |--webpack.config.js //如果需要
 
 ### 安装
 
@@ -52,6 +52,7 @@ enhanced-scripts start
 > NOTE: `enhanced-scripts` 目前没有提供 `init`或`create`命令
 > `enhanced-scripts build` 和 `enhanced-scripts start` 都会自动安装每个子项目的依赖，
 > 但 `enhanced-scripts build`会先清除掉子项目的 `node_modules`,目的是确保依赖能被正确的解析
+
 
 ### 命令选项
 

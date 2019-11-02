@@ -54,7 +54,7 @@ module.exports = function getApplications(script) {
   if (ignore.length > 0) {
     utils.warn(
       `These packages will not be resovled as webpack entry but still will be compiled:\n${ignore
-        .map(item => `       ${item}`)
+        .map(item => `       ${item.replace(/_/g, "/")}`)
         .join("\n")}`
     );
     packages = packages.filter(packagePath => {
@@ -81,7 +81,7 @@ module.exports = function getApplications(script) {
     const applicationPath = relativePath =>
       path.resolve(paths.config.src, applicationName, relativePath);
     // resolve entry file
-    const entry = applicationPath("index.js");
+    const entry = applicationPath("src/index.js");
     //check the keys `name` & `main` & `index.js`
     if (!validateApplicationPackage(package, file, entry)) {
       return null;
@@ -102,7 +102,7 @@ module.exports = function getApplications(script) {
         utils.chalk.underline(paths.config.src)
     );
     utils.error(
-      "A valid package should includes files `package.json` and `index.js`, \n" +
+      "A valid package should includes files `package.json` and `src/index.js`, \n" +
         "        package.json should includes key `name` and key `main`,\n" +
         "        value of `main` should be `index.js` "
     );

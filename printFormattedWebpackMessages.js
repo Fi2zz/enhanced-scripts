@@ -55,9 +55,8 @@ module.exports = function printBuildInfo(stats, error, name) {
     } else {
       utils.print((message || error) + "\n");
     }
-    utils.fail("Failed to compile `" + name + "`");
   } else {
-    let assets = [stats]
+    let assets = stats
       .map(stats =>
         stats
           .toJson({ all: false, assets: true })
@@ -76,9 +75,5 @@ module.exports = function printBuildInfo(stats, error, name) {
     );
     utils.print("Built assets:");
     utils.print(assets.join("\n"));
-    const json = stats.toJson({ builtAt: true, timings: true });
-    utils.print(`Built time: ${(json.time / 1000).toFixed(2)}`);
-    utils.print(`Built at: ${new Date(json.builtAt).toUTCString()}`);
-    utils.ok("Compile `" + name + "` successfully!");
   }
 };

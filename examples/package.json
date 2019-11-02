@@ -5,12 +5,11 @@
   "license": "MIT",
   "scripts": {
     "build": "enhanced-scripts build  --use-config config.yaml",
-    "start": "enhanced-scripts start --dist _build --src  apps",
+    "start": "enhanced-scripts start --dist _build",
     "clean": "rm -rf node_modules/enhanced-scripts && yarn upgrade enhanced-scripts &&  rm -rf _build && yarn build"
   },
   "ignored_paths": [
-    "project_42",
-    "apps/hello"
+    "project_42"
   ],
   "dependencies": {
     "enhanced-scripts": "file:.."

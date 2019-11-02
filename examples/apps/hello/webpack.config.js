@@ -18,7 +18,7 @@ module.exports = () => {
       //       }
       //     ]
       //   },
-      //   plugins: [new EnhancedVueLoaderPlugin(vueLoader)]
+      plugins: [new EnhancedVueLoaderPlugin(vueLoader)];
       // };
     }
   };

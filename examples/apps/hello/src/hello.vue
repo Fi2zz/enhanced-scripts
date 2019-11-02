@@ -5,14 +5,4 @@
 </template>
 <script>
 console.log("hello vue");
-export default {};
 </script>
-
-<style lang="css">
-div{
-}
-</style>
-
-
-
-
