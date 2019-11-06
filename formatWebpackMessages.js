@@ -110,10 +110,10 @@ function formatMessage(message) {
 
 function formatWebpackMessages(json) {
   const formattedErrors = json.errors.map(function(message) {
-    return formatMessage(message, true);
+    return formatMessage(message);
   });
   const formattedWarnings = json.warnings.map(function(message) {
-    return formatMessage(message, false);
+    return formatMessage(message);
   });
   const result = { errors: formattedErrors, warnings: formattedWarnings };
   if (result.errors.some(isLikelyASyntaxError)) {

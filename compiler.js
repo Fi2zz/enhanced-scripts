@@ -1,17 +1,14 @@
-process.on("unhandledRejection", err => {
+process.on("unhandledRejection", (err) => {
   if (err.name && err.name !== "compile_error") {
     throw err;
   }
 });
-
-const isInteractive = process.stdout.isTTY;
-const printBuildInfo = require("./printFormattedWebpackMessages");
 const webpack = require("webpack");
+const printBuildInfo = require("./printStats");
 const formatWebpackMessages = require("./formatWebpackMessages");
 const MultiStats = require("webpack/lib/MultiStats");
-const clearConsole = require("react-dev-utils/clearConsole.js");
 function statsToJson(stats) {
-  const mapped = stats.map(stat =>
+  const mapped = stats.map((stat) =>
     stat.toJson({
       all: false,
       warnings: false,
@@ -34,7 +31,8 @@ function statsToJson(stats) {
   }
 }
 
-module.exports = async function makeCompile(config) {
+module.exports = async function(config) {
+  let err, stat;
   try {
     const compiler = webpack(config);
     let options = null;
@@ -45,41 +43,45 @@ module.exports = async function makeCompile(config) {
     } else {
       runner = compiler.run.bind(compiler);
     }
-    const stats = await createCompiler(runner, options);
-    return [null, stats];
+    stat = await runCompiler(runner, options);
   } catch (error) {
-    return [error, null];
+    if (error.name == "WebpackOptionsValidationError") {
+      throw error;
+    } else {
+      error.name = "compile_error";
+    }
+    err = error;
   }
+  printBuildInfo(stat, err, null);
+  return [err, stat];
 };
 
-function compilerError(error) {
+function buildCompilerError(error) {
   return {
     errors: [error.message],
     warnings: []
   };
 }
 
-function createCompiler(compilerRunner, options) {
+function runCompiler(compiler, options) {
   return new Promise((resovle, reject) => {
     const callback = (error, stat) => {
       let stats = [];
-
-      if (isInteractive) {
-        clearConsole();
-      }
       let messages;
+      let isCompileError = false;
       if (error) {
         if (!error.message) {
           return reject(error);
         }
-        messages = formatWebpackMessages(compilerError(error));
+        messages = formatWebpackMessages(buildCompilerError(error), false);
       } else {
         if (stat instanceof MultiStats) {
           stats = stat.stats;
         } else {
           stats = [stat];
         }
-        messages = statsToJson(stats);
+        isCompileError = true;
+        messages = formatWebpackMessages(statsToJson(stats), true);
       }
       if (messages.errors.length) {
         // Only keep the first error. Others are often indicative
@@ -88,17 +90,16 @@ function createCompiler(compilerRunner, options) {
           messages.errors.length = 1;
         }
         error = new Error(messages.errors.join("\n\n"));
+        if (isCompileError) {
+          error.name = "compile_error";
+        }
       }
-      if (error && error.name !== "WebpackOptionsValidationError") {
-        error.name = "compile_error";
-      }
-      printBuildInfo(stats, error, null);
-      error ? reject(error) : resovle(stat);
+      error ? reject(error) : resovle(stats);
     };
     if (options) {
-      compilerRunner(options, callback);
+      compiler(options, callback);
     } else {
-      compilerRunner(callback);
+      compiler(callback);
     }
   });
 }

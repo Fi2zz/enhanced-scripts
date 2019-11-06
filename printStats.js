@@ -6,13 +6,13 @@ function canReadAsset(asset) {
   return (
     // /\.(js|css)$/.test(asset) &&
     //source map file
-    !/\.map/.test(asset) &&
-    !/service-worker\.js/.test(asset) &&
-    !/assets-manifest\.json/.test(asset) &&
-    !/precache-manifest\.[0-9a-f]+\.js/.test(asset)
+    !/\.map$/.test(asset) &&
+    !/service-worker\.js$/.test(asset) &&
+    !/assets-manifest\.json$/.test(asset) &&
+    !/precache-manifest\.[0-9a-f]+\.js$/.test(asset)
   );
 }
-module.exports = function printBuildInfo(stats, error, name) {
+module.exports = function printStats(stats, error, name) {
   if (error) {
     const message = error != null && error.message;
     const stack = error != null && error.stack;
@@ -57,11 +57,11 @@ module.exports = function printBuildInfo(stats, error, name) {
     }
   } else {
     let assets = stats
-      .map(stats =>
+      .map((stats) =>
         stats
-          .toJson({ all: false, assets: true })
-          .assets.filter(asset => canReadAsset(asset.name))
-          .map(asset => {
+          .toJson({all: false, assets: true})
+          .assets.filter((asset) => canReadAsset(asset.name))
+          .map((asset) => {
             return {
               name: path.join(path.basename(paths.config.dist), asset.name),
               size: prettyBytes(asset.size).replace(/\s/g, "")
@@ -71,7 +71,8 @@ module.exports = function printBuildInfo(stats, error, name) {
       .reduce((single, all) => all.concat(single), []);
     assets.sort((a, b) => b.size - a.size);
     assets = assets.map(
-      item => `${utils.chalk.green(item.name)}  ${utils.chalk.gray(item.size)}`
+      (item) =>
+        `${utils.chalk.green(item.name)}  ${utils.chalk.gray(item.size)}`
     );
     utils.print("Built assets:");
     utils.print(assets.join("\n"));

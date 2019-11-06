@@ -1,104 +1,104 @@
+const _ = require("lodash");
 const configFactory = require("./config/webpack.config");
-const webpackConfigMerger = require("webpack-merge");
+const merge = require("webpack-merge");
 const utils = require("./utils");
 const paths = require("./config/paths");
-function getConfig(file, mode) {
+
+/**
+ *
+ * @param {*} file
+ * @param {*} mode
+ */
+function getWebpackConfig(file, mode) {
   if (!utils.dryRequire(file)) {
-    return null;
+    return {};
   }
   try {
     return require(file)(mode);
   } catch (error) {
-    return null;
+    return {};
   }
 }
-const mergeWithDefaults = (configs, defaults) => {
-  if (configs.length > 0) {
-    return configs.reduce((acc, config) => {
-      const merged = config(acc);
-      if (utils.isPlainObject(merged)) {
-        for (let key in merged) {
-          acc[key] = merged[key];
-        }
-      }
-      return acc;
-    }, defaults);
-  }
-  return defaults;
-};
 
-const fetchConfig = (configFile, mode, defaults) => {
-  const configs = getConfig(configFile, mode);
-  if (utils.isPlainObject(configs)) {
-    const postcss = utils.get(configs, "postcss", null);
-    const babel = utils.get(configs, "babel", null);
-    const webpack = utils.get(configs, "webpack", null);
-    if (typeof webpack === "function") {
-      const config = webpack(mode);
-      if (utils.isPlainObject(config)) {
-        const rules = utils.get(config, "module.rules", null);
-        if (Array.isArray(rules)) {
-          let oneOf = rules.find(rule => rule.oneOf);
-          if (oneOf) {
-            defaults.loaders = [...oneOf.oneOf, ...defaults.loaders];
-          } else {
-            defaults.loaders = [...rules, ...defaults.loaders];
-          }
-          delete config.module.rules;
-        }
-        defaults.configs.unshift(config);
-      }
-    }
-    if (utils.isFunction(babel)) {
-      defaults.babel.push(babel);
-    }
-    if (utils.isFunction(postcss)) {
-      defaults.postcss.push(postcss);
-    }
+function deleteWebpackConfigItem(config, key) {
+  if (_.isPlainObject(config) && config[key]) {
+    delete config[key];
   }
-};
+}
+function getWebpackMouleRules(config) {
+  let rules = _.get(config, "module.rules", []);
+  let oneOfIndex = _.findIndex(rules, "oneOf");
+  let rule = [];
+  if (oneOfIndex >= 0) {
+    const oneOf = rules[oneOfIndex];
+    if (_.isArray(oneOf)) {
+      rule = oneOf;
+    }
+    //remove oneof
+    rules = rules.filter((item) => !item.oneOf);
+  }
+  return [...rule, ...rules];
+}
 
-/**
- *
- * @param {*} mode
- * @param {*} app {name,entry,webpackConfig}
- */
+function buildOneOfRules(defaults, ..._rules) {
+  const rules = _rules.reduce((acc, rules) => {
+    acc = [...acc, ...rules];
+    return acc;
+  }, []);
+  defaults.module.rules.push({
+    oneOf: rules
+  });
+}
 
 function createConfig(mode, app) {
-  const webpack = {
-    configs: [],
-    babel: [],
-    postcss: [],
-    loaders: []
-  };
-  //<project-root>/webpack.config.js
-  fetchConfig(paths.appWebpackConfig, mode, webpack);
-  // <src>/<someapp>/webpack.config.js
-  fetchConfig(app.webpackConfig, mode, webpack);
+  const rootWebpackConfig = getWebpackConfig(paths.appWebpackConfig, mode);
+  const appWebpackConfig = getWebpackConfig(app.webpackConfig, mode);
   const defaults = configFactory(mode, {
-    postcss: postcss => mergeWithDefaults(webpack.postcss, postcss),
-    babel: babel => mergeWithDefaults(webpack.babel, babel),
-    name: app.name,
     entry: app.entry
   });
-  const disableRequireEnsure = defaults.module.rules[0];
-  const rules = defaults.module.rules[1];
-  const merged = webpackConfigMerger([
-    ...webpack.configs,
-    {
-      ...defaults,
-      module: {
-        ...defaults.module,
-        rules: [
-          disableRequireEnsure,
-          {
-            oneOf: [...webpack.loaders, ...rules.oneOf]
-          }
-        ]
-      }
-    }
-  ]);
-  return utils.webpack.validate(merged) && merged;
+  //<project>/webpack.config.js
+  deleteWebpackConfigItem(rootWebpackConfig, "entry");
+  deleteWebpackConfigItem(rootWebpackConfig, "output");
+  deleteWebpackConfigItem(rootWebpackConfig, "devServer");
+
+  //<project>/apps/<app>/webpack.config.js
+  deleteWebpackConfigItem(appWebpackConfig, "output");
+  deleteWebpackConfigItem(appWebpackConfig, "entry");
+  deleteWebpackConfigItem(appWebpackConfig, "devServer");
+
+  return mergeConfig(defaults, rootWebpackConfig, appWebpackConfig);
 }
 
-module.exports = createConfig;
+function mergeConfig(
+  defaults,
+  rootWebpackConfig,
+  appWebpackConfig,
+  extraWebpackConfig = {}
+) {
+  //[{parser: {requireEnsure: false}},{oneOf:[]}]
+  const oneOfRules = defaults.module.rules.pop();
+  const defaultOneOfRules = oneOfRules.oneOf;
+  const fileLoader = defaultOneOfRules.pop();
+  buildOneOfRules(
+    defaults,
+    defaultOneOfRules,
+    getWebpackMouleRules(rootWebpackConfig),
+    getWebpackMouleRules(appWebpackConfig),
+    [fileLoader]
+  );
+  //delete rules of root and app webpack config
+  deleteWebpackConfigItem(rootWebpackConfig.module, "rules");
+  deleteWebpackConfigItem(appWebpackConfig.module, "rules");
+  return merge(
+    defaults,
+    rootWebpackConfig,
+    appWebpackConfig,
+    extraWebpackConfig
+  );
+}
+exports = module.exports = createConfig;
+exports.buildOneOfRules = buildOneOfRules;
+exports.getWebpackMouleRules = getWebpackMouleRules;
+exports.getWebpackConfig = getWebpackConfig;
+exports.deleteWebpackConfigItem = deleteWebpackConfigItem;
+exports.mergeWebpackConfigs = mergeConfig;

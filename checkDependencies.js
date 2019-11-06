@@ -3,59 +3,30 @@ const path = require("path");
 const spawn = require("cross-spawn");
 const utils = require("./utils");
 const fs = require("fs-extra");
-
-module.exports = async function checkDependencies(script) {
-  utils.print();
+const ensureBuildDirectory = require("./ensureBuildDirectory");
+async function checkDependencies(script) {
+  ensureBuildDirectory(script);
   const isBuildScript = script === "build";
-  return getApplications(script).map(async application => {
-    const { package, file } = application;
-    const directory = path.dirname(file);
-    const name = path.basename(directory);
-    const node_modules = path.resolve(directory, "node_modules");
-    checkPackageOtherDeps(package);
-    const hasDependencies = checkPackageDeps(package, name);
-    removeNodeModules(isBuildScript && hasDependencies, node_modules);
+  return getApplications(script).map(async (application) => {
+    const hasDependencies = !utils.isEmpty(application.package.dependencies);
+    utils.info(`Check dependencies of ${application.dirname}  `);
+    removeNodeModules(
+      isBuildScript && hasDependencies,
+      application.node_modules
+    );
     const deps = !hasDependencies
       ? []
-      : collectDependencies(package.dependencies, node_modules, isBuildScript);
+      : collectDependencies(
+          application.package.dependencies,
+          application.node_modules,
+          isBuildScript
+        );
     if (deps.length > 0) {
-      const installed = await install(deps, directory, name);
+      const installed = await install(deps, application.dirname);
       utils.info(installed);
     }
-    delete application.package;
     return application;
   });
-};
-/**
- * check package.dependencies
- */
-function checkPackageDeps(package, name) {
-  const hasDependencies = !utils.isEmpty(package.dependencies);
-  const checkDependenciesLabel =
-    (hasDependencies ? "Check" : "Skip check") +
-    ` ${utils.chalk.yellow(name)}'s dependencies`;
-  utils.info(checkDependenciesLabel);
-  return hasDependencies;
-}
-/**
- * check <src>/<app-name>/package.json denpendencies
- * only allow packages should put to package.dependencies
- */
-
-function checkPackageOtherDeps(package) {
-  //ignore all following dependencies
-  const ignoredDependencies = Object.keys(package).filter(item => {
-    item = item.toLowerCase();
-    return item.includes("dependencies") && item !== "dependencies";
-  });
-  if (ignoredDependencies.length > 0) {
-    utils.error(
-      "DO NOT Put denpendencies in " +
-        ignoredDependencies.join(" or ") +
-        ",put all dependencies to dependencies"
-    );
-    process.exit(1);
-  }
 }
 
 /***
@@ -65,7 +36,7 @@ function checkPackageOtherDeps(package) {
 function removeNodeModules(shouldRemove, node_modules) {
   if (shouldRemove) {
     try {
-      utils.info(`First,remove ${utils.chalk.yellow(node_modules)}`);
+      utils.info(`Remove ${node_modules}`);
       fs.removeSync(node_modules);
     } catch (error) {}
   }
@@ -76,7 +47,7 @@ function removeNodeModules(shouldRemove, node_modules) {
  */
 function collectDependencies(dependencies, modules, isBuildScript) {
   const deps = [];
-  utils.info(`Collecting dependencies...`);
+  utils.info(`Collecting dependencies`);
   for (let dep in dependencies) {
     const packageVersion = `${dependencies[dep]}`.replace(/^\D/, "").trim();
     //for dev , just check deps in app own node_modules;
@@ -86,8 +57,8 @@ function collectDependencies(dependencies, modules, isBuildScript) {
   }
   return deps;
 }
-function install(deps, cwd, appName) {
-  utils.info(`Installing dependencies of ${utils.chalk.yellow(appName)} ...`);
+function install(deps, cwd) {
+  utils.info(`Installing dependencies of ${cwd}`);
   return new Promise((resolve, reject) => {
     let args;
     // yarn use --cwd
@@ -109,12 +80,15 @@ function install(deps, cwd, appName) {
       ];
     }
     const child = spawn(command, args);
-    child.on("close", code => {
+    child.on("close", (code) => {
       if (code !== 0) {
         reject(`${command} ${args.join(" ")}`);
         return;
       }
-      resolve("Dependencies of " + utils.chalk.yellow(appName) + " installed");
+      resolve("Dependencies of " + cwd + " installed");
+      child.kill(0);
     });
   });
 }
+exports = module.exports = checkDependencies;
+exports.install = install;

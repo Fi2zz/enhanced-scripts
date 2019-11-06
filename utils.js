@@ -4,12 +4,12 @@ const execSync = require("child_process").execSync;
 
 exports.chalk = chalk;
 
-exports.error = error => exports.print(chalk.red(`[ERROR] ${error}`));
-exports.warn = warning => exports.print(chalk.yellow("[WARN]", warning));
-exports.info = info => exports.print(chalk.cyan("[INFO]", info));
-exports.ok = msg => exports.print(chalk.green(msg));
-exports.fail = msg => exports.print(chalk.red(msg));
-exports.print = log =>
+exports.error = (error) => exports.print(chalk.red(`[ERROR] ${error}`));
+exports.warn = (warning) => exports.print(chalk.yellow("[WARN]", warning));
+exports.info = (info) => exports.print(chalk.cyan("[INFO]", info));
+exports.ok = (msg) => exports.print(chalk.green(msg));
+exports.fail = (msg) => exports.print(chalk.red(msg));
+exports.print = (log) =>
   console.log(log ? (Array.isArray(log) ? log.join("") : log) : "");
 
 exports.get = _.get;
@@ -24,9 +24,9 @@ exports.dryRequire = function dryRequire(path) {
 };
 exports.isFunction = _.isFunction;
 exports.isPlainObject = _.isPlainObject;
-exports.isUndef = v => _.isNil(v) || _.isNull(v) || _.isUndefined(v);
-exports.isDef = v => !exports.isUndef(v);
-exports.isEmpty = _.isEmpty;
+exports.isUndef = (v) => _.isNil(v) || _.isNull(v) || _.isUndefined(v);
+exports.isDef = (v) => !exports.isUndef(v);
+exports.isEmpty = (v) => exports.isDef(v) && _.isEmpty(v);
 exports.has = _.has;
 exports.isString = _.isString;
 const WebpackOptionsValidationError = require("webpack/lib/WebpackOptionsValidationError");
@@ -45,7 +45,7 @@ exports.webpack = {
 };
 exports.shouldUseYarn = function shouldUseYarn() {
   try {
-    execSync("yarnpkg --version", { stdio: "ignore" });
+    execSync("yarnpkg --version", {stdio: "ignore", timeout: 300});
     return true;
   } catch (e) {
     return false;

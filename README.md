@@ -4,24 +4,6 @@
 >
 > 与 Phoenix Umbrella 不同的是，每个`enhanced-scripts`都可以管理自己的项目依赖，不会出现依赖版本冲突的问题
 
-### Examples
-
-        git clone https://github.com/Fi2zz/enhanced-scripts.git
-        cd enhanced-scripts && node examples start
-        或
-        cd enhanced-scripts && node examples build
-
-### 项目结构
-
-    project_root
-    |-webpack.config.js //如果需要
-    |-<config>.yaml //如果有
-    |-apps
-    | |-<app-name>
-    | |--index.js
-    | |--package.json
-    | |--webpack.config.js //如果需要
-
 ### 安装
 
 yarn
@@ -33,7 +15,39 @@ yarn add https://github.com/Fi2zz/enhanced-scripts.git
 npm
 
 ```bash
-  npm install https://github.com/Fi2zz/enhanced-scripts.git
+npm install https://github.com/Fi2zz/enhanced-scripts.git
+```
+
+### Examples
+
+```bash
+git clone https://github.com/Fi2zz/enhanced-scripts.git
+//start watcher
+cd enhanced-scripts/examples && yarn start
+//build apps
+cd enhanced-scripts/examples && yarn build
+//start dev-server
+cd enhanced-scripts/examples && webpack-dev-server --config ./apps/dev-server/webpackDevServer.js
+```
+
+### 项目结构 (以 examples 为例)
+
+```
+examples
+  |-config.yaml //如果有
+  |-apps
+  | |-dev-server
+  | |---index.js
+  | |---package.json
+  | |---webpack.config.js //如果需要
+  | |---webpackDevServer.config.js //如果需要
+  | |-vue-app
+  | |---index.js
+  | |---package.json
+  | |---webpack.config.js //如果需要
+  | |---project_42
+  | |---index.js
+  | |---package.json
 ```
 
 ### 命令
@@ -45,14 +59,14 @@ enhanced-scripts build
 enhanced-scripts start
 //development mode
 //监听<project_root>/apps/<child_app_dir>
-//目前没有dev-server
 
 ```
 
-> NOTE: `enhanced-scripts` 目前没有提供 `init`或`create`命令
-> `enhanced-scripts build` 和 `enhanced-scripts start` 都会自动安装每个子项目的依赖，
-> 但 `enhanced-scripts build`会先清除掉子项目的 `node_modules`,目的是确保依赖能被正确的解析
+> NOTE: `enhanced-scripts` 目前没有提供 `init`，`create`, `dev-server` 命令
 
+> `enhanced-scripts build` 和 `enhanced-scripts start` 都会自动安装每个子项目的依赖，
+
+> `enhanced-scripts build`会先清除掉子项目的 `node_modules`,目的是确保依赖能被正确的解析
 
 ### 命令选项
 
@@ -73,6 +87,31 @@ enhanced-scripts start
 }
 ```
 
+### 使用 webpack-dev-server
+
+> <a href="https://webpack.js.org/configuration/dev-server/">如何配置 WebpackDevServer </a>
+
+1.在项目安装 webpack-dev-server
+
+2.在项目内创建 webpackDevServer.config.js
+
+3.在 webpackDevServer.config.js 内写入如下内容
+
+```javascript
+//引入`enhanced-scripts` 的 `createDevServerConfig`函数
+const createDevServerConfig = require("enhanced-scripts").createDevServerConfig;
+//引入`webpack.config.js`
+const webpackConfig = require("<app_dir>/webpack.config.js");
+//导出 devServer配置
+module.exports = createDevServerConfig(webpackConfig);
+```
+
+4.启动 webpack-dev-server
+
+```bash
+webpack-dev-server --config webpackDevServer.config.js
+```
+
 ### Yaml 配置文件
 
 ```yaml
@@ -84,37 +123,18 @@ generate_source_map: YES # 是否生成source map ,可选值:YES|NO, 默认值,`
 only: some_child_app #只编译某个项目
 ```
 
-### 拷贝未被`url-loader`或 `file-loader`解析的静态资源
-
-在项目根目录创建 setupCopyAssets.js，写入以下内容
-
-```javascript
-module.exports = function({ name, mode, firstCompilation }) {
-  //这几个选项可以优化拷贝的性能
-  //name, 被拷贝的项目
-  //mode, development | production
-  //firstCompilation,  是否初次编译， producion mode永远是true
-  //拷贝的逻辑
-};
-```
-
 ### 合并配置
 
 1.通过根项目的`webpack.config.js`来合并默认配置,[配置详情](#webpack.config.js)
 
 > 例如 <project_root_dir>/webpack.config.s
 
-2.用子项目的`webpack.config.js`来合并默认配置,[配置详情](#webpack.config.js)
-
 > 例如: <project_root_dir>/apps/hello/webpack.config.js
 
 配置合并的顺序为
 
 <pre>
-enhanced_scripts_webpack_config => 
-child_app_webpack_config => 
-project_root_webpack_config => 
-final_webpack_config
+enhanced-scripts/webpack.config.js=>apps/app/webpack.config.js=>webpack.config.js
 </pre>
 
 ### `webpack.config.js`
@@ -122,41 +142,28 @@ final_webpack_config
 ```javascript
 //如果使用了vue，需要显式声明vue-loader路径
 //将VueLoaderPlugin 替换为  EnhancedVueLoaderPlugin
-const EnhancedVueLoaderPlugin = require("<project_root>/node_modules/enhanced-scripts/EnhancedVueLoaderPlugin");
+const EnhancedVueLoaderPlugin = require("enhanced-scripts/").EnhancedVueLoaderPlugin;
 // EnhancedVueLoaderPlugin接受一个参数 vueLoaderPath,即vue-loader所在的目录
 //  new EnhancedVueLoaderPlugin(vueLoaderPath)
 
-module.exports = mode => {
+//webpack 配置必须是个工厂函数
+module.exports = (mode) => {
+  //webpack configs
   return {
-    webpack(mode) {
-      //webpack configs
-      return {
-        //使用vue
-        module: {
-          rules: [
-            {
-              test: /\.vue$/,
-              loader: require.resolve("vue-loader")
-            }
-          ]
-        },
-        //使用 EnhancedVueLoaderPlugin
-        //vueLoaderPath => vue-loader的路径
-        plugins: [new EnhancedVueLoaderPlugin(vueLoaderPath)]
-      };
+    entry: <WebpackEntryOption>,  //此项在 `enhanced-scripts start` 和 `enhanced-scripts build` 将被删除
+    output:<WebpackOutputOption>, //此项在 `enhanced-scripts start` 和 `enhanced-scripts build` 将被删除
+    //使用vue
+    module: {
+      rules: [
+        {
+          test: /\.vue$/,
+          loader: require.resolve("vue-loader")
+        }
+      ]
     },
-    babel(defaultBabelConfig) {
-      //babel configs
-      //支持 plugins / presets
-      //不支持.babelrc或 babel.config.js
-      return {};
-    },
-    postcss(defaultPostcssConfig) {
-      //postcss configs
-      //不支持 postcss.config.js .postcssrc等一系列postcss配置文件
-      //支持除了 config、ident、sourceMap之外的所以postcss 选项
-      return {};
-    }
+    //使用 EnhancedVueLoaderPlugin
+    //vueLoaderPath => vue-loader的路径
+    plugins: [new EnhancedVueLoaderPlugin(vueLoaderPath)],
   };
 };
 ```

@@ -1,13 +1,11 @@
-// @remove-on-eject-begin
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-// @remove-on-eject-end
 "use strict";
-
+const path = require("path");
 const fs = require("fs");
 const isWsl = require("is-wsl");
 const webpack = require("webpack");
@@ -39,7 +37,12 @@ const shouldUseSourceMap = paths.config.generateSourceMap;
 const utils = require("../utils");
 // This is the production and development configuration.
 // It is focused on developer experience, fast rebuilds, and a minimal bundle.
-module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
+module.exports = function(webpackEnv, {entry}) {
+  let name = "";
+  if (typeof entry === "string") {
+    const dirname = path.dirname(entry);
+    name = path.basename(dirname);
+  }
   const isEnvDevelopment = webpackEnv === "development";
   const isEnvProduction = webpackEnv === "production";
   const publicPath = paths.servedPath;
@@ -51,47 +54,8 @@ module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
     : isEnvDevelopment && "";
   // Get environment variables to inject into our app.
   const env = getClientEnvironment(publicUrl);
-
-  const genOutPutFilePattern = pattern => {
-    return `${name}/${pattern}`;
-  };
-  const assetNamePattern = genOutPutFilePattern("img/[name].[ext]");
   // common function to get style loaders
   const getStyleLoaders = (cssOptions, preProcessor) => {
-    const basePostcss = {
-      // Necessary for external CSS imports to work
-      // https://github.com/facebook/create-react-app/issues/2677
-      plugins: [
-        require("postcss-flexbugs-fixes"),
-        require("postcss-preset-env")({
-          autoprefixer: {
-            flexbox: "no-2009"
-          },
-          stage: 3
-        }),
-        // Adds PostCSS Normalize as the reset css with default options,
-        // so that it honors browserslist config in package.json
-        // which in turn let's users customize the target behavior as per their needs.
-        postcssNormalize()
-      ]
-    };
-
-    const appPostcss =
-      typeof postcss === "function" ? postcss(basePostcss) : null;
-    let postcssConfig = {
-      config: {},
-      ident: "postcss",
-      sourceMap: isEnvProduction && shouldUseSourceMap
-    };
-    if (utils.isPlainObject(appPostcss)) {
-      postcssConfig = Object.assign({}, appPostcss, postcssConfig);
-    } else {
-      postcssConfig = Object.assign(
-        { config: false },
-        basePostcss,
-        postcssConfig
-      );
-    }
     const loaders = [
       isEnvDevelopment && require.resolve("style-loader"),
       isEnvProduction && {
@@ -106,7 +70,21 @@ module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
         // Adds vendor prefixing based on your specified browser support in
         // package.json
         loader: require.resolve("postcss-loader"),
-        options: postcssConfig
+        options: {
+          plugins: [
+            require("postcss-flexbugs-fixes"),
+            require("postcss-preset-env")({
+              autoprefixer: {
+                flexbox: "no-2009"
+              },
+              stage: 3
+            }),
+            // Adds PostCSS Normalize as the reset css with default options,
+            // so that it honors browserslist config in package.json
+            // which in turn let's users customize the target behavior as per their needs.
+            postcssNormalize()
+          ]
+        }
         // typeof postcss === "function" ? postcss(basePostcss) : basePostcss
       }
     ].filter(Boolean);
@@ -128,96 +106,11 @@ module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
     }
     return loaders;
   };
-  const appBabelLoaderOptions = babel => {
-    const babelOptions = {
-      babelrc: false,
-      configFile: false,
-      // This is a feature of `babel-loader` for webpack (not Babel itself).
-      // It enables caching results in ./node_modules/.cache/babel-loader/
-      // directory for faster rebuilds.
-      cacheDirectory: true,
-      // See #6846 for context on why cacheCompression is disabled
-      cacheCompression: false,
-      compact: isEnvProduction,
-      // Make sure we have a unique cache identifier, erring on the
-      // side of caution.
-      // We remove this when the user ejects because the default
-      // is sane and uses Babel options. Instead of options, we use
-      // the react-scripts and babel-preset-react-app versions.
-      cacheIdentifier: getCacheIdentifier(
-        isEnvProduction ? "production" : isEnvDevelopment && "development",
-        [
-          "babel-plugin-named-asset-import",
-          "babel-preset-react-app",
-          "react-dev-utils"
-        ]
-      ),
-      customize: require.resolve("babel-preset-react-app/webpack-overrides")
-    };
-
-    const base = {
-      presets: [require.resolve("babel-preset-react-app")],
-      plugins: [
-        [
-          require.resolve("babel-plugin-named-asset-import"),
-          {
-            loaderMap: {
-              svg: {
-                ReactComponent: "@svgr/webpack?-svgo,+titleProp,+ref![path]"
-              }
-            }
-          }
-        ]
-      ]
-    };
-
-    const appBabel = typeof babel === "function" ? babel(base) : null;
-    if (utils.isPlainObject(appBabel)) {
-      return Object.assign({}, appBabel, babelOptions);
-    }
-    return Object.assign({}, base, babelOptions);
-  };
-  const nodeModulesBabelLoaderOptions = babel => {
-    const babelOptions = {
-      cacheDirectory: true,
-      // See #6846 for context on why cacheCompression is disabled
-      cacheCompression: false,
-      cacheIdentifier: getCacheIdentifier(
-        isEnvProduction ? "production" : isEnvDevelopment && "development",
-        [
-          "babel-plugin-named-asset-import",
-          "babel-preset-react-app",
-          "react-dev-utils"
-        ]
-      ),
-      // If an error happens in a package, it's possible to be
-      // because it was compiled. Thus, we don't want the browser
-      // debugger to show the original code. Instead, the code
-      // being evaluated would be much more helpful.
-      sourceMaps: false,
-      babelrc: false,
-      configFile: false,
-      compact: false
-    };
-    const base = {
-      presets: [
-        [
-          require.resolve("babel-preset-react-app/dependencies"),
-          { helpers: true }
-        ]
-      ]
-    };
-    const appBabel = typeof babel === "function" ? babel(base) : null;
-    if (utils.isPlainObject(appBabel)) {
-      return Object.assign({}, appBabel, babelOptions);
-    }
-    return Object.assign({}, base, babelOptions);
-  };
   return {
     entry,
     output: {
       path: paths.config.dist,
-      filename: genOutPutFilePattern("js/[name].js"),
+      filename: name + "/[name].js",
       publicPath: paths.servedPath
     },
     mode: isEnvProduction ? "production" : isEnvDevelopment && "development",
@@ -305,8 +198,8 @@ module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
       // `web` extension prefixes have been added for better support
       // for React Native Web.
       extensions: paths.extension
-        .map(ext => `.${ext}`)
-        .filter(ext => useTypeScript || !ext.includes("ts")),
+        .map((ext) => `.${ext}`)
+        .filter((ext) => useTypeScript || !ext.includes("ts")),
 
       plugins: [
         // Adds support for installing with Plug'n'Play, leading to faster installs and adding
@@ -324,7 +217,7 @@ module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
       strictExportPresence: true,
       rules: [
         // Disable require.ensure as it's not a standard language feature.
-        { parser: { requireEnsure: false } },
+        {parser: {requireEnsure: false}},
         {
           // "oneOf" will traverse all following loaders until one will
           // match the requirements. When no loader matches it will fall
@@ -338,7 +231,7 @@ module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
               loader: require.resolve("url-loader"),
               options: {
                 limit: 10000,
-                name: assetNamePattern
+                name: name + "/[name].[ext]"
               }
             },
             // Process application JS with Babel.
@@ -347,7 +240,49 @@ module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
               test: /\.(js|mjs|jsx|ts|tsx)$/,
               include: paths.config.src,
               loader: require.resolve("babel-loader"),
-              options: appBabelLoaderOptions(babel)
+              options: {
+                presets: [require.resolve("babel-preset-react-app")],
+                plugins: [
+                  [
+                    require.resolve("babel-plugin-named-asset-import"),
+                    {
+                      loaderMap: {
+                        svg: {
+                          ReactComponent:
+                            "@svgr/webpack?-svgo,+titleProp,+ref![path]"
+                        }
+                      }
+                    }
+                  ]
+                ],
+                babelrc: false,
+                configFile: false,
+                // This is a feature of `babel-loader` for webpack (not Babel itself).
+                // It enables caching results in ./node_modules/.cache/babel-loader/
+                // directory for faster rebuilds.
+                cacheDirectory: true,
+                // See #6846 for context on why cacheCompression is disabled
+                cacheCompression: false,
+                compact: isEnvProduction,
+                // Make sure we have a unique cache identifier, erring on the
+                // side of caution.
+                // We remove this when the user ejects because the default
+                // is sane and uses Babel options. Instead of options, we use
+                // the react-scripts and babel-preset-react-app versions.
+                cacheIdentifier: getCacheIdentifier(
+                  isEnvProduction
+                    ? "production"
+                    : isEnvDevelopment && "development",
+                  [
+                    "babel-plugin-named-asset-import",
+                    "babel-preset-react-app",
+                    "react-dev-utils"
+                  ]
+                ),
+                customize: require.resolve(
+                  "babel-preset-react-app/webpack-overrides"
+                )
+              }
             },
             // Process any JS outside of the app with Babel.
             // Unlike the application JS, we only compile the standard ES features.
@@ -355,7 +290,35 @@ module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
               test: /\.(js|mjs)$/,
               exclude: /@babel(?:\/|\\{1,2})runtime/,
               loader: require.resolve("babel-loader"),
-              options: nodeModulesBabelLoaderOptions(babel)
+              options: {
+                presets: [
+                  [
+                    require.resolve("babel-preset-react-app/dependencies"),
+                    {helpers: true}
+                  ]
+                ],
+                cacheDirectory: true,
+                // See #6846 for context on why cacheCompression is disabled
+                cacheCompression: false,
+                cacheIdentifier: getCacheIdentifier(
+                  isEnvProduction
+                    ? "production"
+                    : isEnvDevelopment && "development",
+                  [
+                    "babel-plugin-named-asset-import",
+                    "babel-preset-react-app",
+                    "react-dev-utils"
+                  ]
+                ),
+                // If an error happens in a package, it's possible to be
+                // because it was compiled. Thus, we don't want the browser
+                // debugger to show the original code. Instead, the code
+                // being evaluated would be much more helpful.
+                sourceMaps: false,
+                babelrc: false,
+                configFile: false,
+                compact: false
+              }
             },
             // "postcss" loader applies autoprefixer to our CSS.
             // "css" loader resolves paths in CSS and adds assets as dependencies.
@@ -439,7 +402,7 @@ module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
                 /\.vue/
               ],
               options: {
-                name: assetNamePattern
+                name: name + "/[name].[ext]"
               }
             }
             // ** STOP ** Are you adding a new loader?
@@ -466,26 +429,27 @@ module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
         new MiniCssExtractPlugin({
           // Options similar to the same options in webpackOptions.output
           // both options are optional
-          filename: genOutPutFilePattern("css/[name].css")
+          filename: name + "/[name].css"
           //   chunkFilename: "static/css/[name].[contenthash:8].chunk.css"
         }),
       // Generate a manifest file which contains a mapping of all asset filenames
       // to their corresponding output file so that tools can pick it up without
       // having to parse `index.html`.
-      new ManifestPlugin({
-        fileName: genOutPutFilePattern(`assets-manifest.json`),
-        publicPath: publicPath,
-        generate: (seed, files) => {
-          const manifestFiles = files.reduce(function(manifest, file) {
-            manifest[file.name] = file.path;
-            return manifest;
-          }, seed);
+      isEnvProduction &&
+        new ManifestPlugin({
+          fileName: `${name}/assets-manifest.json`,
+          publicPath: publicPath,
+          generate: (seed, files) => {
+            const manifestFiles = files.reduce(function(manifest, file) {
+              manifest[file.name] = file.path;
+              return manifest;
+            }, seed);
 
-          return {
-            files: manifestFiles
-          };
-        }
-      }),
+            return {
+              files: manifestFiles
+            };
+          }
+        }),
       // Moment.js is an extremely popular library that bundles large locale files
       // by default due to how Webpack interprets its code. This is a practical
       // solution that requires the user to opt into importing specific locales.
@@ -510,8 +474,7 @@ module.exports = function(webpackEnv, { babel, postcss, name, entry }) {
             "!**/__tests__/**",
             "!**/?(*.)(spec|test).*",
             "!**/setupProxy.*",
-            "!**/setupTests.*",
-            "!**/setupCopyAssets.*"
+            "!**/setupTests.*"
           ],
           watch: paths.config.src,
           silent: true,

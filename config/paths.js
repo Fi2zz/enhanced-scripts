@@ -4,7 +4,8 @@ const utils = require("../utils");
 const yaml = require("yaml");
 const yarg = require("yargs");
 const appDirectory = fs.realpathSync(process.cwd());
-const resolveApp = relativePath => path.resolve(appDirectory, relativePath);
+const resolveApp = (relativePath) => path.resolve(appDirectory, relativePath);
+const srcName = "apps";
 const appPackageJson = resolveApp("package.json");
 function ensureSlash(inputPath, needsSlash) {
   const hasSlash = inputPath.endsWith("/");
@@ -23,7 +24,6 @@ function getPublicPath() {
 function getIgnoredPaths(appPackageJson) {
   return require(appPackageJson).ignored_paths || [];
 }
-
 function getBuildConfig() {
   function getAppBuildConfigFile() {
     const useBuildConfig = utils.get(yarg.argv, "useConfig", null);
@@ -33,20 +33,18 @@ function getBuildConfig() {
       : null;
   }
   const file = getAppBuildConfigFile();
-  const srcName = "apps";
 
   const dist = utils.get(yarg.argv, "dist", "build");
   const config = {
     excludes: [],
     only: utils.get(yarg.argv, "only", null),
     dist: resolveApp(dist),
-    cleanLastBuild: utils.get(yarg.argv, "clean", "YES") === "YES",
+    cleanLastBuild: utils.get(yarg.argv, "clean", false),
     generateSourceMap: utils.get(yarg.argv, "sourceMap", "YES") === "YES",
     file: null,
     ignore: [],
     src: resolveApp(srcName)
   };
-
   if (file) {
     try {
       const json = yaml.parse(fs.readFileSync(file).toString());
@@ -78,7 +76,7 @@ function getBuildConfig() {
 
   const ignore = getIgnoredPaths(appPackageJson);
   if (ignore.length) {
-    config.ignore = ignore.map(ignore => {
+    config.ignore = ignore.map((ignore) => {
       let p;
       if (
         ignore.startsWith(srcName) ||
@@ -94,12 +92,26 @@ function getBuildConfig() {
     });
   }
   if (config.excludes.length > 0 && !config.only) {
-    config.excludes = config.excludes.map(exclude =>
+    config.excludes = config.excludes.map((exclude) =>
       path.resolve(config.src, exclude)
     );
   }
   return config;
 }
+
+function getDevServerConfig() {
+  let devServerConfig = utils.get(yarg.argv, "devServerConfig", null);
+  if (typeof devServerConfig === "string") {
+    const APPS_STRING = "apps/";
+    if (devServerConfig.includes(APPS_STRING)) {
+      let index = devServerConfig.indexOf(APPS_STRING);
+      devServerConfig = devServerConfig.substring(index + APPS_STRING.length);
+    }
+    return resolveApp(`${srcName}/${devServerConfig}`);
+  }
+  return null;
+}
+
 module.exports = {
   appPackageJson: appPackageJson,
   config: getBuildConfig(),
@@ -111,6 +123,7 @@ module.exports = {
   servedPath: getPublicPath(appPackageJson),
   resolveApp: resolveApp,
   dotenv: resolveApp(".env"),
+  devServerConfig: getDevServerConfig(),
   extension: [
     "web.mjs",
     "mjs",
