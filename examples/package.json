@@ -6,13 +6,17 @@
   "scripts": {
     "build": "enhanced-scripts build  --use-config config.yaml",
     "start": "enhanced-scripts start --dist _build",
-    "clean": "rm -rf node_modules/enhanced-scripts && yarn upgrade enhanced-scripts &&  rm -rf _build && yarn build"
+    "clean": "rm -rf _build && rm -rf node_modules && yarn"
   },
   "ignored_paths": [
     "project_42"
   ],
   "dependencies": {
-    "enhanced-scripts": "file:.."
+    "enhanced-scripts": "file:..",
+    "react": "^16.11.0",
+    "vue": "2.6.9",
+    "html-webpack-plugin": "4.0.0-beta.8",
+    "webpack-dev-server": "3.9.0"
   },
   "homepage": "/_build"
 }
