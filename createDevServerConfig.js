@@ -25,24 +25,29 @@ function createDevServerConfig(input) {
     config = input(mode);
   }
 
+  if (!config.devServer) {
+    throw Error("webpack.config.js must have `devServer` option");
+  }
+
   if (!config.entry) {
-    throw Error("webpack.config.js must have entry option");
+    throw Error("webpack.config.js must have `entry` option");
   }
 
   if (!config.output) {
-    throw Error("webpack.config.js must have output option");
+    throw Error("webpack.config.js must have `output` option");
   }
   const defaults = configFactory(mode, {
-    entry: config.entry
+    entry: null
   });
-  defaults.output = config.output;
-  defaults.output.publicPath = config.output.publicPath || "/";
   return mergeWebpackConfigs(defaults, rootWebpackConfig, config, {
     stats: {
       assets: true,
       all: false,
       errors: true,
       errorDetails: true
+    },
+    devServer: {
+      hot: true
     }
   });
 }

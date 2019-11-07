@@ -4,15 +4,24 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const createDevServerConfig = require("enhanced-scripts").createDevServerConfig;
 //引入`webpack.config.js`
 const webpackConfig = require(path.resolve(__dirname, "./webpack.config.js"));
+
+
+const 
 //导出 devServer配置
-// module.exports =
-const config = webpackConfig("development");
-if (!Array.isArray(config.plugins)) {
-  config.plugins = [];
-}
-config.plugins.push(
-  new HtmlWebpackPlugin({
-    template: path.resolve(__dirname, "public/index.html")
-  })
-);
+
+
+const config = {
+  mode: "development",
+  entry: path.resolve(__dirname, "./index.js"),
+  output: {
+    path: path.resolve(__dirname, "dist"),
+    publicPath: "/",
+    filename: "[name].js"
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, "public/index.html")
+    })
+  ]
+};
 module.exports = createDevServerConfig(config);
