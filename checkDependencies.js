@@ -7,9 +7,6 @@ const ensureBuildDirectory = require("./ensureBuildDirectory");
 async function checkDependencies(script) {
   ensureBuildDirectory(script);
   const isBuildScript = script === "build";
-
-  return getApplications(script);
-
   return getApplications(script).map(async (application) => {
     const hasDependencies = !utils.isEmpty(application.package.dependencies);
     utils.info(`Check dependencies of ${application.dirname}  `);
@@ -31,7 +28,6 @@ async function checkDependencies(script) {
     return application;
   });
 }
-
 /***
  * remove <src>/<app-name>/node_modules
  */
