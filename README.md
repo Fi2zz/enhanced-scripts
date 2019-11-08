@@ -140,12 +140,6 @@ enhanced-scripts/webpack.config.js=>apps/app/webpack.config.js=>webpack.config.j
 ### `webpack.config.js`
 
 ```javascript
-//如果使用了vue，需要显式声明vue-loader路径
-//将VueLoaderPlugin 替换为  EnhancedVueLoaderPlugin
-const EnhancedVueLoaderPlugin = require("enhanced-scripts/").EnhancedVueLoaderPlugin;
-// EnhancedVueLoaderPlugin接受一个参数 vueLoaderPath,即vue-loader所在的目录
-//  new EnhancedVueLoaderPlugin(vueLoaderPath)
-
 //webpack 配置必须是个工厂函数
 module.exports = (mode) => {
   //webpack configs
