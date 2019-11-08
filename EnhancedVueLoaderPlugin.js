@@ -1,8 +1,9 @@
 const qs = require("querystring");
 const RuleSet = require("webpack/lib/RuleSet");
-const path = require("path");
+
 const id = "vue-loader-plugin";
 const NS = "vue-loader";
+
 function getVueRule(rules) {
   let vueRuleIndex = rules.findIndex(createMatcher(`foo.vue`));
   if (vueRuleIndex < 0) {
@@ -11,20 +12,12 @@ function getVueRule(rules) {
   return rules[vueRuleIndex] ? rules[vueRuleIndex] : null;
 }
 
-class EnhancedVueLoaderPlugin {
-  constructor(vueLoaderPath) {
-    const dirname = path
-      .dirname(vueLoaderPath)
-      .split(path.sep)
-      .filter(item => item !== "lib" && item !== "vue-loader")
-      .join(path.sep);
-    this.vueLoaderParentDir = dirname;
-  }
+class VueLoaderPlugin {
   apply(compiler) {
     // add NS marker so that the loader can detect and report missing plugin
     if (compiler.hooks) {
       // webpack 4
-      compiler.hooks.compilation.tap(id, compilation => {
+      compiler.hooks.compilation.tap(id, (compilation) => {
         let normalModuleLoader;
         if (Object.isFrozen(compilation.hooks)) {
           // webpack 5
@@ -34,22 +27,22 @@ class EnhancedVueLoaderPlugin {
         } else {
           normalModuleLoader = compilation.hooks.normalModuleLoader;
         }
-        normalModuleLoader.tap(id, loaderContext => {
+        normalModuleLoader.tap(id, (loaderContext) => {
           loaderContext[NS] = true;
         });
       });
     } else {
       // webpack < 4
-      compiler.plugin("compilation", compilation => {
-        compilation.plugin("normal-module-loader", loaderContext => {
+      compiler.plugin("compilation", (compilation) => {
+        compilation.plugin("normal-module-loader", (loaderContext) => {
           loaderContext[NS] = true;
         });
       });
     }
     // use webpack's RuleSet utility to normalize user rules
     const rawRules = compiler.options.module.rules;
-    const { rules } = new RuleSet(rawRules);
-    const oneOfIndex = rules.findIndex(rule => rule.oneOf);
+    const {rules} = new RuleSet(rawRules);
+    const oneOfIndex = rules.findIndex((rule) => rule.oneOf);
     let vueRuleInsideOneOfRules = false;
 
     let vueRule = null;
@@ -76,7 +69,7 @@ class EnhancedVueLoaderPlugin {
     // get the normlized "use" for vue files
     const vueUse = vueRule.use;
     // get vue-loader options
-    const vueLoaderUseIndex = vueUse.findIndex(u => {
+    const vueLoaderUseIndex = vueUse.findIndex((u) => {
       return /^vue-loader|(\/|\\|@)vue-loader/.test(u.loader);
     });
 
@@ -94,15 +87,10 @@ class EnhancedVueLoaderPlugin {
     vueLoaderUse.ident = "vue-loader-options";
     vueLoaderUse.options = vueLoaderUse.options || {};
 
-    const clonedRules = rules.filter(rule => rule !== vueRule).map(cloneRule);
+    const clonedRules = rules.filter((rule) => rule !== vueRule).map(cloneRule);
     const pitcher = {
-      loader: require.resolve(
-        path.resolve(
-          this.vueLoaderParentDir,
-          "vue-loader/lib/loaders/pitcher.js"
-        )
-      ),
-      resourceQuery: query => {
+      loader: require.resolve("vue-loader/lib/loaders/pitcher"),
+      resourceQuery: (query) => {
         const parsed = qs.parse(query.slice(1));
         return parsed.vue != null;
       },
@@ -129,7 +117,7 @@ function createMatcher(fakeFile) {
 }
 
 function cloneRule(rule) {
-  const { resource, resourceQuery } = rule;
+  const {resource, resourceQuery} = rule;
   // Assuming `test` and `resourceQuery` tests are executed in series and
   // synchronously (which is true based on RuleSet's implementation), we can
   // save the current resource being matched from `test` so that we can access
@@ -138,12 +126,12 @@ function cloneRule(rule) {
   let currentResource;
   const res = Object.assign({}, rule, {
     resource: {
-      test: resource => {
+      test: (resource) => {
         currentResource = resource;
         return true;
       }
     },
-    resourceQuery: query => {
+    resourceQuery: (query) => {
       const parsed = qs.parse(query.slice(1));
       if (parsed.vue == null) {
         return false;
@@ -169,5 +157,5 @@ function cloneRule(rule) {
   return res;
 }
 
-EnhancedVueLoaderPlugin.NS = NS;
-module.exports = EnhancedVueLoaderPlugin;
+VueLoaderPlugin.NS = NS;
+module.exports = VueLoaderPlugin;

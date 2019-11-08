@@ -5,10 +5,7 @@ const createDevServerConfig = require("enhanced-scripts").createDevServerConfig;
 //引入`webpack.config.js`
 const webpackConfig = require(path.resolve(__dirname, "./webpack.config.js"));
 
-
-const 
 //导出 devServer配置
-
 
 const config = {
   mode: "development",
@@ -22,6 +19,9 @@ const config = {
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "public/index.html")
     })
-  ]
+  ],
+  devServer: {
+    port: 3000
+  }
 };
 module.exports = createDevServerConfig(config);

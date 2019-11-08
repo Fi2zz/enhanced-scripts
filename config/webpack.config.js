@@ -34,7 +34,8 @@ const sassRegex = /\.(scss|sass)$/;
 const sassModuleRegex = /\.module\.(scss|sass)$/;
 // Source maps are resource heavy and can cause out of memory issue for large source files.
 const shouldUseSourceMap = paths.config.generateSourceMap;
-const utils = require("../utils");
+const VueLoaderPlugin = require("vue-loader/lib/plugin");
+
 // This is the production and development configuration.
 // It is focused on developer experience, fast rebuilds, and a minimal bundle.
 module.exports = function(webpackEnv, {entry}) {
@@ -252,6 +253,13 @@ module.exports = function(webpackEnv, {entry}) {
                             "@svgr/webpack?-svgo,+titleProp,+ref![path]"
                         }
                       }
+                    }
+                  ],
+                  ["@babel/plugin-proposal-decorators", {legacy: true}],
+                  [
+                    "@babel/plugin-proposal-class-properties",
+                    {
+                      loose: true
                     }
                   ]
                 ],

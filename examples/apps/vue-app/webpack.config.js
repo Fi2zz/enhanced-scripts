@@ -1,33 +1,57 @@
-// const vueLoader = require.resolve("./node_modules/"); //.replace('');
-
-// console.log("vueloader", vueLoader);
-
 const path = require("path");
-const cwd = process.cwd();
-const node_modules = (...els) => path.resolve(cwd, "node_modules", ...els);
-const EnhancedVueLoaderPlugin = require("enhanced-scripts")
-  .EnhancedVueLoaderPlugin;
-module.exports = () => {
+module.exports = function config() {
   return {
     output: {
       path: path.resolve(__dirname, "hello"),
       filename: "test.js"
     },
-    plugins: [
-      new EnhancedVueLoaderPlugin(
-        require.resolve(path.resolve(__dirname, "node_modules/vue-loader"))
-      )
-    ],
-    resolve: {
-      extensions: [".vue"]
-    },
     module: {
       rules: [
         {
-          test: /\.vue/,
-          loader: require.resolve("vue-loader")
+          oneOf: [
+            {
+              test: /\.css$/,
+              loader: "vue-style-loader"
+            }
+          ]
+        },
+        {
+          test: /\.scss$/,
+          loader: "vue-style-loader"
         }
       ]
     }
   };
+};
+
+exports = module.exports;
+exports.babel = {
+  plugins: []
+  // presets: ["@babel/env"]
+};
+exports.vueTemplateCompiler = require("vue-template-compiler");
+exports.postcss = {
+  plugins() {
+    return [
+      require("postcss-svg")({}),
+      require("postcss-aspect-ratio-mini")({}),
+      require("postcss-write-svg")({utf8: false}),
+      require("postcss-px-to-viewport")({
+        unitToConvert: "px",
+        viewportWidth: 750,
+        unitPrecision: 5,
+        propList: ["*"],
+        viewportUnit: "vw",
+        fontViewportUnit: "vw",
+        selectorBlackList: [],
+        minPixelValue: 1,
+        mediaQuery: true,
+        replace: true,
+        exclude: [/gondola_main.scss/],
+        landscape: false,
+        landscapeUnit: "vw",
+        landscapeWidth: 568
+      })
+    ];
+  }
 };

@@ -1,7 +1,7 @@
 excludes:
   - project_42
   - vendor
-# only: hello
+# only: vue-app
 clean_last_build: YES
 generate_source_map: NO
 dist: _build

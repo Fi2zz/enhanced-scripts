@@ -1,0 +1,7 @@
+{
+  "files": {
+    "main.css": "/_build/vue-app/main.css",
+    "main.js": "/_build/test.js",
+    "vue-app/hello.jpg": "/_build/vue-app/hello.jpg"
+  }
+}

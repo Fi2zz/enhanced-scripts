@@ -13,10 +13,13 @@
   ],
   "dependencies": {
     "enhanced-scripts": "file:..",
-    "react": "^16.11.0",
-    "vue": "2.6.9",
     "html-webpack-plugin": "4.0.0-beta.8",
-    "webpack-dev-server": "3.9.0"
+    "postcss-aspect-ratio-mini": "^1.0.1",
+    "postcss-px-to-viewport": "^1.1.1",
+    "postcss-svg": "^3.0.0",
+    "postcss-write-svg": "^3.0.1",
+    "react": "^16.11.0",
+    "vue": "2.6.9"
   },
   "homepage": "/_build"
 }

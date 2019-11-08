@@ -31,19 +31,17 @@ function statsToJson(stats) {
   }
 }
 
-module.exports = async function(config) {
+module.exports = async function(config, options, callback) {
   let err, stat;
   try {
     const compiler = webpack(config);
-    let options = null;
     let runner = null;
     if (Array.isArray(config)) {
       runner = compiler.watch.bind(compiler);
-      options = {};
     } else {
       runner = compiler.run.bind(compiler);
     }
-    stat = await runCompiler(runner, options);
+    stat = await runCompiler(runner, options, callback);
   } catch (error) {
     if (error.name == "WebpackOptionsValidationError") {
       throw error;
@@ -52,7 +50,6 @@ module.exports = async function(config) {
     }
     err = error;
   }
-  printBuildInfo(stat, err, null);
   return [err, stat];
 };
 
@@ -63,9 +60,9 @@ function buildCompilerError(error) {
   };
 }
 
-function runCompiler(compiler, options) {
+function runCompiler(compiler, options, callback) {
   return new Promise((resovle, reject) => {
-    const callback = (error, stat) => {
+    const compilerCallback = (error, stat) => {
       let stats = [];
       let messages;
       let isCompileError = false;
@@ -94,12 +91,15 @@ function runCompiler(compiler, options) {
           error.name = "compile_error";
         }
       }
+      if (callback) {
+        callback(error, stats);
+      }
       error ? reject(error) : resovle(stats);
     };
     if (options) {
-      compiler(options, callback);
+      compiler(options, compilerCallback);
     } else {
-      compiler(callback);
+      compiler(compilerCallback);
     }
   });
 }

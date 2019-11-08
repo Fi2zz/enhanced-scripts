@@ -5,12 +5,15 @@ require("../config/env");
 const checkDenpendencies = require("../checkDependencies");
 const makeCompile = require("../compiler");
 const createConfig = require("../createConfig");
+
+const printBuildInfo = require("../printStats");
 checkDenpendencies("build").then(async (applications) => {
   applications.forEach(async (item) => {
     const application = await item;
     utils.info("Start compile `" + application.name + "`");
     const config = createConfig("production", application);
     const [error, stats] = await makeCompile(config);
+    printBuildInfo(stats, error, application.name);
     if (error) {
       utils.fail("Failed to compile `" + application.name + "`");
     } else {

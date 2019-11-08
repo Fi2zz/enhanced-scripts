@@ -98,20 +98,6 @@ function getBuildConfig() {
   }
   return config;
 }
-
-function getDevServerConfig() {
-  let devServerConfig = utils.get(yarg.argv, "devServerConfig", null);
-  if (typeof devServerConfig === "string") {
-    const APPS_STRING = "apps/";
-    if (devServerConfig.includes(APPS_STRING)) {
-      let index = devServerConfig.indexOf(APPS_STRING);
-      devServerConfig = devServerConfig.substring(index + APPS_STRING.length);
-    }
-    return resolveApp(`${srcName}/${devServerConfig}`);
-  }
-  return null;
-}
-
 module.exports = {
   appPackageJson: appPackageJson,
   config: getBuildConfig(),
@@ -119,11 +105,9 @@ module.exports = {
   appWebpackConfig: resolveApp("webpack.config.js"),
   appTsConfig: resolveApp("tsconfig.json"),
   appPath: resolveApp("."),
-  setupCopyAssets: resolveApp("setupCopyAssets.js"),
   servedPath: getPublicPath(appPackageJson),
   resolveApp: resolveApp,
   dotenv: resolveApp(".env"),
-  devServerConfig: getDevServerConfig(),
   extension: [
     "web.mjs",
     "mjs",
