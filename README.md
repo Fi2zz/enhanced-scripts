@@ -149,21 +149,24 @@ const EnhancedVueLoaderPlugin = require("enhanced-scripts/").EnhancedVueLoaderPl
 //webpack 配置必须是个工厂函数
 module.exports = (mode) => {
   //webpack configs
-  return {
-    entry: <WebpackEntryOption>,  //此项在 `enhanced-scripts start` 和 `enhanced-scripts build` 将被删除
-    output:<WebpackOutputOption>, //此项在 `enhanced-scripts start` 和 `enhanced-scripts build` 将被删除
-    //使用vue
-    module: {
-      rules: [
-        {
-          test: /\.vue$/,
-          loader: require.resolve("vue-loader")
-        }
-      ]
-    },
-    //使用 EnhancedVueLoaderPlugin
-    //vueLoaderPath => vue-loader的路径
-    plugins: [new EnhancedVueLoaderPlugin(vueLoaderPath)],
-  };
+  return <WebpackOptions>
 };
+//添加Vue和babel和postcss配置
+//关键一步
+exports =module.exports
+//添加额外的babel配置
+//只支持plugins和presets
+exports.babel ={
+    presets:[],
+    plugins:[]
+}
+
+//添加额外的postcss配置
+//只支持plugins
+exports.postcss ={
+    plugins:[]
+}
+//添加vue支持
+exports.vueTemplateCompiler =require('vue-template-compiler')
+
 ```
