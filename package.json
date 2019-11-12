@@ -1,6 +1,6 @@
 {
   "name": "enhanced-scripts",
-  "version": "1.2.4",
+  "version": "1.2.6",
   "bin": {
     "enhanced-scripts": "./bin/enhanced-scripts.js"
   },

@@ -60,3 +60,5 @@ typings/
 # next.js build output
 .next
 _build
+examples/apps/vue-app/build_vue_app
+examples/apps/vue-app/hello

@@ -1,9 +1,11 @@
 const path = require("path");
 module.exports = function config() {
   return {
+    entry: path.resolve(__dirname, "index.js"),
     output: {
-      path: path.resolve(__dirname, "hello"),
-      filename: "test.js"
+      path: path.resolve(__dirname, "build_vue_app"),
+      filename: "test.js",
+      publicPath: "/vue-app/"
     },
     module: {
       rules: [
@@ -25,20 +27,20 @@ module.exports = function config() {
 };
 
 exports = module.exports;
-exports.babel = {
+exports.babel = () => ({
   plugins: []
   // presets: ["@babel/env"]
-};
+});
 exports.vueTemplateCompiler = require("vue-template-compiler");
-exports.postcss = {
+exports.postcss = () => ({
   plugins() {
     return [
       require("postcss-svg")({}),
       require("postcss-aspect-ratio-mini")({}),
-      require("postcss-write-svg")({utf8: false}),
+      require("postcss-write-svg")({ utf8: false }),
       require("postcss-px-to-viewport")({
         unitToConvert: "px",
-        viewportWidth: 750,
+        viewportWidth: 1000,
         unitPrecision: 5,
         propList: ["*"],
         viewportUnit: "vw",
@@ -54,4 +56,4 @@ exports.postcss = {
       })
     ];
   }
-};
+});

@@ -2,10 +2,6 @@ const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 //引入`enhanced-scripts` 的 `createDevServerConfig`函数
 const createDevServerConfig = require("enhanced-scripts").createDevServerConfig;
-//引入`webpack.config.js`
-const webpackConfig = require(path.resolve(__dirname, "./webpack.config.js"));
-
-console.log("deveddd");
 //导出 devServer配置
 
 const config = {
@@ -18,7 +14,7 @@ const config = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.resolve(__dirname, "public/index.html")
+      template: path.resolve(__dirname, "index.html")
     })
   ],
   devServer: {

@@ -56,15 +56,14 @@ examples
 enhanced-scripts build
 //运行build命令，production mode
 
-enhanced-scripts start
+enhanced-scripts watch
 //development mode
-//监听<project_root>/apps/<child_app_dir>
 
 ```
 
 > NOTE: `enhanced-scripts` 目前没有提供 `init`，`create`, `dev-server` 命令
 
-> `enhanced-scripts build` 和 `enhanced-scripts start` 都会自动安装每个子项目的依赖，
+> `enhanced-scripts build` 和 `enhanced-scripts watch` 都会自动安装每个子项目的依赖，
 
 > `enhanced-scripts build`会先清除掉子项目的 `node_modules`,目的是确保依赖能被正确的解析
 
@@ -101,8 +100,9 @@ enhanced-scripts start
 //引入`enhanced-scripts` 的 `createDevServerConfig`函数
 const createDevServerConfig = require("enhanced-scripts").createDevServerConfig;
 //引入`webpack.config.js`
-const webpackConfig = require("<app_dir>/webpack.config.js");
+const webpackConfig = require("<child-app>/webpack.config.js");
 //导出 devServer配置
+
 module.exports = createDevServerConfig(webpackConfig);
 ```
 
@@ -125,42 +125,53 @@ only: some_child_app #只编译某个项目
 
 ### 合并配置
 
-1.通过根项目的`webpack.config.js`来合并默认配置,[配置详情](#webpack.config.js)
+通过根项目的`webpack.config.js`来合并默认配置,[配置详情](#webpack.config.js)
 
-> 例如 <project_root_dir>/webpack.config.s
+> 例如:`project/`webpack.config.s
 
-> 例如: <project_root_dir>/apps/hello/webpack.config.js
+> 例如: `project/apps/child-app/`webpack.config.js
 
-配置合并的顺序为
+### TypeScript 支持
 
-<pre>
-enhanced-scripts/webpack.config.js=>apps/app/webpack.config.js=>webpack.config.js
-</pre>
+1. 在 <project_dir> 创建 `tsconfig.json`
+2. 在 <project_dir/apps/child_app>创建 `tsconfig.json`
+   > NOTE: 优先使用 <project_dir/apps/child_app> 的 tsconfig
 
 ### `webpack.config.js`
 
-```javascript
+```typescript
 //webpack 配置必须是个工厂函数
 module.exports = (mode) => {
-  //webpack configs
+  //如果配置了<WebpackOptions.Entry>且entry 不以index.js结尾, entry将被删除
+  //如果配置了<WebpackOptions.OutputOptions.filename>, filename将被重置回 <child_app>/[name].js
+  //【仅限于子项目】配置 <WebpackOptions.OutputOptions.path>可以实现打包到不同的目录
   return <WebpackOptions>
 };
-//添加Vue和babel和postcss配置
-//关键一步
+
+//添加额外Babel/Postcss/Vue支持
+//babel和postcss必须是工厂函数
 exports =module.exports
 //添加额外的babel配置
 //只支持plugins和presets
-exports.babel ={
-    presets:[],
-    plugins:[]
+exports.babel = (webpackEnv)=> {
+    return {
+      presets: BabelPreset[],
+      plugins: BabelPlugin[]
+    }
 }
-
 //添加额外的postcss配置
-//只支持plugins
-exports.postcss ={
-    plugins:[]
+//只支持plugins,由于postcss-loader options的限制，plugins必须是个工厂函数
+exports.postcss = webpackEnv =>{
+  return {
+      plugins(loader){
+        return  PotcssPlugin[]
+      }
+  }
 }
 //添加vue支持
+//由于vue-loader需要和vue-template-compiler在同一个node_modules目录下
+//所以需要手动指定vue-loader options.compiler  =require('vue-template-compiler')，
+//故在此处需要手动指定 vueTemplateCompiler
 exports.vueTemplateCompiler =require('vue-template-compiler')
 
 ```

@@ -3,58 +3,76 @@ const path = require("path");
 const spawn = require("cross-spawn");
 const utils = require("./utils");
 const fs = require("fs-extra");
-const ensureBuildDirectory = require("./ensureBuildDirectory");
-async function checkDependencies(script) {
-  ensureBuildDirectory(script);
-  const isBuildScript = script === "build";
-  return getApplications(script).map(async (application) => {
-    const hasDependencies = !utils.isEmpty(application.package.dependencies);
-    utils.info(`Check dependencies of ${application.dirname}  `);
-    removeNodeModules(
-      isBuildScript && hasDependencies,
-      application.node_modules
+const resolve = require("./config/resolve");
+function checkPackageOtherDeps(package, name) {
+  //ignore all following dependencies
+  const ignoredDependencies = Object.keys(package).filter(item => {
+    item = item.toLowerCase();
+    return item.includes("dependencies") && item !== "dependencies";
+  });
+  if (ignoredDependencies.length > 0) {
+    throw Error(
+      name +
+        " package.json should not have `[" +
+        ignoredDependencies.join("`,`") +
+        "`],put all dependencies to `package.dependencies`"
     );
-    const deps = !hasDependencies
-      ? []
-      : collectDependencies(
-          application.package.dependencies,
-          application.node_modules,
-          isBuildScript
-        );
-    if (deps.length > 0) {
-      const installed = await install(deps, application.dirname);
-      utils.info(installed);
-    }
-    return application;
+    process.exit(1);
+  }
+}
+async function checkDependencies(script) {
+  const isBuildScript = script === "build";
+  return getApplications(script).map(async entry => {
+    const pkg = entry.replace("index.js", "package.json");
+    const package = require(pkg);
+    const name = resolve.basename(entry);
+    utils.info(`Check dependencies of ${name}  `);
+    checkPackageOtherDeps(package, name);
+    await removeNodeModules(isBuildScript, entry);
+    await installDependencies(package, entry, isBuildScript);
+    return entry;
   });
 }
-/***
- * remove <src>/<app-name>/node_modules
- */
-
-function removeNodeModules(shouldRemove, node_modules) {
+async function removeNodeModules(shouldRemove, entry) {
   if (shouldRemove) {
     try {
+      const node_modules = entry.replace("index.js", "node_modules");
       utils.info(`Remove ${node_modules}`);
       fs.removeSync(node_modules);
     } catch (error) {}
   }
 }
 
-/***
- * use `require.resolve` to check dependency is installed
+/**
+ *
+ * @param {*} package
+ * @param {*} entry
+ * @param {*} isBuildScript
  */
-function collectDependencies(dependencies, modules, isBuildScript) {
+async function installDependencies(package, entry, isBuildScript) {
   const deps = [];
-  utils.info(`Collecting dependencies`);
+  const hasDependencies = !!package.dependencies;
+  if (!hasDependencies) {
+    return Promise.resolve();
+  }
+  const resolveApp = (p = "") => entry.replace("index.js", p);
+  const name = resolve.basename(entry);
+  const resolveNodeModules = dep =>
+    path.resolve(resolveApp("node_modules"), dep);
+  const dependencies = package.dependencies;
+  utils.info(`Collecting dependencies of ${name}`);
   for (let dep in dependencies) {
     const packageVersion = `${dependencies[dep]}`.replace(/^\D/, "").trim();
     //for dev , just check deps in app own node_modules;
-    if (isBuildScript || !utils.dryRequire(path.resolve(modules, dep))) {
+    if (isBuildScript || !utils.dryRequire(resolveNodeModules(dep))) {
       deps.push(`${dep}@${packageVersion}`);
     }
   }
-  return deps;
+  if (deps.length > 0) {
+    const installed = await install(deps, resolveApp());
+    utils.info(installed);
+  }
+  return Promise.resolve();
 }
 function install(deps, cwd) {
   utils.info(`Installing dependencies of ${cwd}`);
@@ -62,7 +80,7 @@ function install(deps, cwd) {
     let args;
     // yarn use --cwd
     // npm use --prefix
-    if (utils.shouldUseYarn()) {
+    if (utils.useYarn) {
       command = "yarnpkg";
       args = ["add", ...deps, "--exact", "--cwd", cwd];
     } else {
@@ -78,10 +96,11 @@ function install(deps, cwd) {
         "error"
       ];
     }
-    const child = spawn(command, args);
-    child.on("close", (code) => {
+    const child = spawn(command, args, { stdio: "inherit" });
+    child.on("close", code => {
       if (code !== 0) {
         reject(`${command} ${args.join(" ")}`);
+        throw Error("Failed to install dependencies at " + cwd);
         return;
       }
       resolve("Dependencies of " + cwd + " installed");

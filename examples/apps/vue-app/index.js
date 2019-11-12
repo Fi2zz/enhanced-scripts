@@ -16,3 +16,11 @@ class Abc {
 }
 
 new Abc();
+
+import React from "react";
+
+import Vue from "vue";
+
+new Vue();
+
+React.createElement("div");

@@ -5,7 +5,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 "use strict";
-const path = require("path");
 const fs = require("fs");
 const isWsl = require("is-wsl");
 const webpack = require("webpack");
@@ -26,7 +25,6 @@ const typescriptFormatter = require("react-dev-utils/typescriptFormatter");
 const getCacheIdentifier = require("react-dev-utils/getCacheIdentifier");
 const postcssNormalize = require("postcss-normalize");
 // Check if TypeScript is setup
-const useTypeScript = fs.existsSync(paths.appTsConfig);
 // style files regexes
 const cssRegex = /\.css$/;
 const cssModuleRegex = /\.module\.css$/;
@@ -34,28 +32,29 @@ const sassRegex = /\.(scss|sass)$/;
 const sassModuleRegex = /\.module\.(scss|sass)$/;
 // Source maps are resource heavy and can cause out of memory issue for large source files.
 const shouldUseSourceMap = paths.config.generateSourceMap;
-const VueLoaderPlugin = require("vue-loader/lib/plugin");
 
 // This is the production and development configuration.
 // It is focused on developer experience, fast rebuilds, and a minimal bundle.
-module.exports = function(webpackEnv, {entry}) {
-  let name = "";
-  if (typeof entry === "string") {
-    const dirname = path.dirname(entry);
-    name = path.basename(dirname);
-  }
+module.exports = function(webpackEnv, {typeScriptLocation, tsConfig}) {
+  const useTypeScript =
+    fs.existsSync(tsConfig) || fs.existsSync(paths.appTsConfig);
   const isEnvDevelopment = webpackEnv === "development";
   const isEnvProduction = webpackEnv === "production";
   const publicPath = paths.servedPath;
   // `publicUrl` is just like `publicPath`, but we will provide it to our app
   // as %PUBLIC_URL% in `index.html` and `process.env.PUBLIC_URL` in JavaScript.
   // Omit trailing slash as %PUBLIC_URL%/xyz looks better than %PUBLIC_URL%xyz.
-  const publicUrl = isEnvProduction
-    ? publicPath.slice(0, -1)
-    : isEnvDevelopment && "";
+
+  //use dev server
+  // const publicUrl = isEnvProduction
+  //   ? publicPath.slice(0, -1)
+  //   : isEnvDevelopment && "";
+  //use webpack watch
+  const publicUrl = publicPath.slice(0, -1);
   // Get environment variables to inject into our app.
   const env = getClientEnvironment(publicUrl);
   // common function to get style loaders
+
   const getStyleLoaders = (cssOptions, preProcessor) => {
     const loaders = [
       isEnvDevelopment && require.resolve("style-loader"),
@@ -108,10 +107,10 @@ module.exports = function(webpackEnv, {entry}) {
     return loaders;
   };
   return {
-    entry,
+    entry: paths.appIndexJS,
     output: {
-      path: paths.config.dist,
-      filename: name + "/[name].js",
+      path: paths.appBuild,
+      filename: "[name].js",
       publicPath: paths.servedPath
     },
     mode: isEnvProduction ? "production" : isEnvDevelopment && "development",
@@ -182,7 +181,13 @@ module.exports = function(webpackEnv, {entry}) {
               : false
           }
         })
-      ]
+      ],
+      // Keep the runtime chunk separated to enable long term caching
+      // https://twitter.com/wSokra/status/969679223278505985
+      // https://github.com/facebook/create-react-app/issues/5358
+      runtimeChunk: {
+        name: entrypoint => `runtime-${entrypoint.name}`
+      }
     },
     resolve: {
       // This allows you to set a fallback for where Webpack should look for modules.
@@ -199,8 +204,8 @@ module.exports = function(webpackEnv, {entry}) {
       // `web` extension prefixes have been added for better support
       // for React Native Web.
       extensions: paths.extension
-        .map((ext) => `.${ext}`)
-        .filter((ext) => useTypeScript || !ext.includes("ts")),
+        .map(ext => `.${ext}`)
+        .filter(ext => useTypeScript || !ext.includes("ts")),
 
       plugins: [
         // Adds support for installing with Plug'n'Play, leading to faster installs and adding
@@ -210,7 +215,7 @@ module.exports = function(webpackEnv, {entry}) {
         // To fix this, we prevent you from importing files out of src/ -- if you'd like to,
         // please link the files into your node_modules/ and let module-resolution kick in.
         // Make sure your source files are compiled, as they will not be processed in any way.
-        new ModuleScopePlugin(paths.config.src, [paths.appPackageJson])
+        new ModuleScopePlugin(paths.appSrc, [paths.appPackageJson])
       ]
     },
 
@@ -232,14 +237,14 @@ module.exports = function(webpackEnv, {entry}) {
               loader: require.resolve("url-loader"),
               options: {
                 limit: 10000,
-                name: name + "/[name].[ext]"
+                name: "[name].[ext]"
               }
             },
             // Process application JS with Babel.
             // The preset includes JSX, Flow, TypeScript, and some ESnext features.
             {
               test: /\.(js|mjs|jsx|ts|tsx)$/,
-              include: paths.config.src,
+              exclude: /(node_modules|bower_components|webpack.config.js|webpackDevServer.config.js|(config.js$))/,
               loader: require.resolve("babel-loader"),
               options: {
                 presets: [require.resolve("babel-preset-react-app")],
@@ -410,7 +415,7 @@ module.exports = function(webpackEnv, {entry}) {
                 /\.vue/
               ],
               options: {
-                name: name + "/[name].[ext]"
+                name: "[name].[ext]"
               }
             }
             // ** STOP ** Are you adding a new loader?
@@ -422,7 +427,7 @@ module.exports = function(webpackEnv, {entry}) {
     plugins: [
       // This gives some necessary context to module not found errors, such as
       // the requesting resource.
-      new ModuleNotFoundPlugin(paths.config.src),
+      new ModuleNotFoundPlugin(paths.appSrc),
       // Makes some environment variables available to the JS code, for example:
       // if (process.env.NODE_ENV === 'production') { ... }. See `./env.js`.
       // It is absolutely essential that NODE_ENV is set to production
@@ -437,15 +442,14 @@ module.exports = function(webpackEnv, {entry}) {
         new MiniCssExtractPlugin({
           // Options similar to the same options in webpackOptions.output
           // both options are optional
-          filename: name + "/[name].css"
-          //   chunkFilename: "static/css/[name].[contenthash:8].chunk.css"
+          filename: "[name].css"
         }),
       // Generate a manifest file which contains a mapping of all asset filenames
       // to their corresponding output file so that tools can pick it up without
       // having to parse `index.html`.
       isEnvProduction &&
         new ManifestPlugin({
-          fileName: `${name}/assets-manifest.json`,
+          fileName: "assets-manifest.json",
           publicPath: publicPath,
           generate: (seed, files) => {
             const manifestFiles = files.reduce(function(manifest, file) {
@@ -469,14 +473,14 @@ module.exports = function(webpackEnv, {entry}) {
       useTypeScript &&
         new ForkTsCheckerWebpackPlugin({
           typescript: resolve.sync("typescript", {
-            basedir: paths.appNodeModules
+            basedir: typeScriptLocation || paths.appNodeModules
           }),
           async: isEnvDevelopment,
           useTypescriptIncrementalApi: true,
           checkSyntacticErrors: true,
           resolveModuleNameModule: undefined,
           resolveTypeReferenceDirectiveModule: undefined,
-          tsconfig: paths.appTsConfig,
+          tsconfig: tsConfig || paths.appTsConfig,
           reportFiles: [
             "**",
             "!**/__tests__/**",
@@ -484,7 +488,7 @@ module.exports = function(webpackEnv, {entry}) {
             "!**/setupProxy.*",
             "!**/setupTests.*"
           ],
-          watch: paths.config.src,
+          watch: paths.appSrc,
           silent: true,
           // The formatter is invoked directly in WebpackDevServerUtils during development
           formatter: isEnvProduction ? typescriptFormatter : undefined

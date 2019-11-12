@@ -1,20 +1,28 @@
 const fs = require("fs-extra");
 const utils = require("./utils");
 const paths = require("./config/paths");
-module.exports = function(script) {
-  const buildFolder = paths.config.dist;
+
+function mkdir(buildFolder) {
   try {
     if (!fs.existsSync(buildFolder)) {
       fs.ensureDirSync(buildFolder);
     } else {
       if (paths.config.cleanLastBuild) {
-        utils.info(
-          `Clean up build folder :${utils.chalk.green(
-            buildFolder
-          )} before run ${script}`
-        );
+        utils.info(`Clean up build folder :${buildFolder}`);
         fs.emptyDirSync(buildFolder);
       }
     }
   } catch (err) {}
+}
+
+module.exports = class EnsureOutputPathPlugin {
+  constructor(enabled) {
+    this.enabled = enabled;
+  }
+  apply(compiler) {
+    if (!this.enabled) {
+      return;
+    }
+    mkdir(compiler.options.output.path);
+  }
 };

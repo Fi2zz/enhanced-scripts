@@ -4,12 +4,11 @@ module.exports = function() {
 
 exports = module.exports;
 
-exports.babel = {
+exports.babel = () => ({
   presets: ["@babel/env"]
-};
-
-exports.postcss = {
-  plugins: [
+});
+exports.postcss = () => ({
+  plugins: () => [
     // require("postcss-svg")({}),
     // require("postcss-aspect-ratio-mini")({}),
     // require("postcss-write-svg")({utf8: false}),
@@ -27,7 +26,7 @@ exports.postcss = {
       exclude: [/gondola_main.scss/],
       landscape: false,
       landscapeUnit: "vw",
-      landscapeWidth: 568
+      landscapeWidth: 666
     })
   ]
-};
+});
