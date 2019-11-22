@@ -10,17 +10,18 @@ const scriptIndex = args.findIndex(
 const pkg = require("../package.json");
 const script = scriptIndex === -1 ? args[0] : args[scriptIndex];
 const nodeArgs = scriptIndex > 0 ? args.slice(0, scriptIndex) : [];
+const pkill = require("../pkill");
 console.log(`Using ${pkg.name}@${pkg.version} `);
 switch (script) {
   case "build":
   case "watch":
   case "test": {
+    const scriptPath = require.resolve("../scripts/" + script);
+    pkill(scriptPath);
     const result = spawn.sync(
       "node",
-      nodeArgs
-        .concat(require.resolve("../scripts/" + script))
-        .concat(args.slice(scriptIndex + 1)),
-      {stdio: "inherit"}
+      nodeArgs.concat(scriptPath).concat(args.slice(scriptIndex + 1)),
+      { stdio: "inherit" }
     );
     if (result.signal) {
       if (result.signal === "SIGKILL") {
